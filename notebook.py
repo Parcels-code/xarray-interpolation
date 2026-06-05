@@ -12,28 +12,31 @@
 
 import marimo
 
-__generated_with = "0.23.8"
+__generated_with = "0.23.9"
 app = marimo.App(width="medium")
 
 
 @app.cell
-def _():
+def setup_1():
     import numpy as np
     import xarray as xr
 
     import dask.array as da
 
-    from functools import reduce  # Valid in Python 2.6+, required in Python 3
+    from functools import reduce
     import operator
     from pathlib import Path
 
     from zarr.storage import LocalStore
+    import marimo as mo
+    import zarr
+    import math
 
-    return LocalStore, Path, da, np, operator, reduce, xr
+    return LocalStore, Path, da, math, mo, np, operator, reduce, xr, zarr
 
 
 @app.cell(hide_code=True)
-def data_generation(LocalStore, Path, da, np, operator, reduce, xr):
+def data_generation(LocalStore, Path, da, mo, np, operator, reduce, xr):
     X = 1000
     Y = 1000
     Z = 50
@@ -50,39 +53,19 @@ def data_generation(LocalStore, Path, da, np, operator, reduce, xr):
         LON, LAT = np.meshgrid(XG, YG)
 
         angle = -np.pi / 24
-        rotation = np.array(
-            [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
-        )
+        rotation = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
 
         # rotate the LON and LAT grids
         LON, LAT = np.einsum("ji, mni -> jmn", rotation, np.dstack([LON, LAT]))
 
         return xr.Dataset(
             {
-                "data_g": (
-                    ["time", "ZG", "YG", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "data_c": (
-                    ["time", "ZC", "YC", "XC"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "U_A_grid": (
-                    ["time", "ZG", "YG", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "V_A_grid": (
-                    ["time", "ZG", "YG", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "U_C_grid": (
-                    ["time", "ZG", "YC", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "V_C_grid": (
-                    ["time", "ZG", "YG", "XC"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
+                "data_g": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "data_c": (["time", "ZC", "YC", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "U_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "V_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "U_C_grid": (["time", "ZG", "YC", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "V_C_grid": (["time", "ZG", "YG", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
             },
             coords={
                 "XG": (["XG"], XG, {"axis": "X", "c_grid_axis_shift": -0.5}),
@@ -122,10 +105,12 @@ def data_generation(LocalStore, Path, da, np, operator, reduce, xr):
         theta = np.arctan2(y, x)
         return r, theta
 
+
     def _polar_to_cartesian(r, theta):
         x = r * np.cos(theta)
         y = r * np.sin(theta)
         return x, y
+
 
     def _unrolled_cone_curvilinear_grid():
         # Not a great unrolled cone, but this is good enough for testing
@@ -155,30 +140,12 @@ def data_generation(LocalStore, Path, da, np, operator, reduce, xr):
 
         return xr.Dataset(
             {
-                "data_g": (
-                    ["time", "ZG", "YG", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "data_c": (
-                    ["time", "ZC", "YC", "XC"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "U_A_grid": (
-                    ["time", "ZG", "YG", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "V_A_grid": (
-                    ["time", "ZG", "YG", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "U_C_grid": (
-                    ["time", "ZG", "YC", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "V_C_grid": (
-                    ["time", "ZG", "YG", "XC"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
+                "data_g": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "data_c": (["time", "ZC", "YC", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "U_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "V_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "U_C_grid": (["time", "ZG", "YC", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "V_C_grid": (["time", "ZG", "YG", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
             },
             coords={
                 "XG": (["XG"], XG, {"axis": "X", "c_grid_axis_shift": -0.5}),
@@ -210,34 +177,17 @@ def data_generation(LocalStore, Path, da, np, operator, reduce, xr):
             },
         )
 
+
     datasets = {
         "2d_left_rotated": _rotated_curvilinear_grid(),
         "ds_2d_left": xr.Dataset(  # MITgcm indexing style
             {
-                "data_g": (
-                    ["time", "ZG", "YG", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "data_c": (
-                    ["time", "ZC", "YC", "XC"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "U_A_grid": (
-                    ["time", "ZG", "YG", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "V_A_grid": (
-                    ["time", "ZG", "YG", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "U_C_grid": (
-                    ["time", "ZG", "YC", "XG"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
-                "V_C_grid": (
-                    ["time", "ZG", "YG", "XC"],
-                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
-                ),
+                "data_g": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "data_c": (["time", "ZC", "YC", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "U_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "V_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "U_C_grid": (["time", "ZG", "YC", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "V_C_grid": (["time", "ZG", "YG", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
             },
             coords={
                 "XG": (
@@ -275,6 +225,8 @@ def data_generation(LocalStore, Path, da, np, operator, reduce, xr):
         "2d_left_unrolled_cone": _unrolled_cone_curvilinear_grid(),
     }
 
+
+
     def save(ds: xr.Dataset, path: str, chunks: dict) -> None:
         """Save dataset to zarr with specified chunking."""
         store = LocalStore(path)
@@ -288,12 +240,18 @@ def data_generation(LocalStore, Path, da, np, operator, reduce, xr):
         print(f"Dataset {dataset_path} already exists")
     else:
         save(
-            datasets["ds_2d_left"][["U_A_grid", "V_A_grid"]],
+            datasets['ds_2d_left'][["U_A_grid", "V_A_grid"]],
             dataset_path,
             {"time": 15, "XG": 40, "YG": 40, "ZG": 8},
         )
 
     print("\nDone.")
+    mo.md(
+        """
+        # Generate test data
+        Uses an example dataset in Parcels to generate zarr test data.
+        """
+    )
     return
 
 
@@ -303,49 +261,75 @@ def _(xr):
     return (ds,)
 
 
-@app.cell
-def _(ds, mo):
-    subset_sliders = {
-        dim: mo.ui.slider(0, size, label=dim) for dim, size in ds.sizes.items()
-    }
-
-    return (subset_sliders,)
-
-
-@app.cell
-def _(mo, subset_sliders):
-    mo.vstack([mo.md("Subset dataset slider")] + list(subset_sliders.values()))
-    return
-
-
-@app.cell
-def _(ds, subset_sliders):
-    ds_subset = ds.isel({k: slice(v.value) for k, v in subset_sliders.items()})
-    ds_subset
-    return
-
-
 @app.cell(hide_code=True)
-def _():
-    import marimo as mo
+def _(ds, math, mo, zarr):
+    _z_store = zarr.open("datasets/ds_2d_left_agrid.zarr", mode="r")
+    _chunk_meta = _z_store["V_A_grid"]
+    chunk_size_per_dim = dict(zip(ds.sizes.keys(), _chunk_meta.chunks))
+    chunks_per_dim_count = {d: math.ceil(ds.sizes[d] / chunk_size_per_dim[d]) for d in ds.sizes}
+    total_chunks = _chunk_meta.nchunks
+
+    chunks_covered = mo.ui.slider(0, total_chunks, step=1, label="Chunks covered: ", value=total_chunks)
 
     n = mo.ui.slider(start=2, stop=7, step=1, label="Number of particles (10^n): ")
-    return mo, n
+    return (
+        chunk_size_per_dim,
+        chunks_covered,
+        chunks_per_dim_count,
+        n,
+        total_chunks,
+    )
 
 
 @app.cell(hide_code=True)
-def _(mo, n):
-    n_particles = 10**n.value
-    mo.vstack([n, mo.md(f"$10^{n.value}={n_particles}$ particles")])
+def _(chunks_covered, mo, n, n_particles, total_chunks):
 
-    return (n_particles,)
+
+    mo.vstack([n, mo.md(f"$10^{n.value}={n_particles}$ particles"), chunks_covered, mo.md(f"**{chunks_covered.value}** / {total_chunks} chunks covered")])
+    return
 
 
 @app.cell
-def _(ds, n_particles, np, xr):
-    def get_barycentric_coordinates(n, ds):
-        # fake barycentric coordinates. These would actually be calculated from the particle positions
-        return {k: np.random.uniform(0, v, size=n) for k, v in ds.sizes.items()}
+def _(zarr):
+    zarr.open("datasets/ds_2d_left_agrid.zarr", mode="r")['V_A_grid'].chunks
+    return
+
+
+@app.cell
+def _(
+    chunk_size_per_dim,
+    chunks_covered,
+    chunks_per_dim_count,
+    ds,
+    n_particles,
+    np,
+    xr,
+):
+    def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_counts):
+        dims = list(ds.sizes.keys())
+        counts_tuple = tuple(chunk_counts[d] for d in dims)
+
+        if n_active_chunks == 0 or n == 0:
+            return {k: np.array([], dtype=float) for k in dims}
+
+        # Map linear chunk indices → per-dim chunk indices
+        active_linear = np.arange(min(n_active_chunks, int(np.prod(counts_tuple))))
+        chunk_indices = np.unravel_index(active_linear, counts_tuple)
+        # Assign each particle to a random active chunk, sample uniformly within it
+        chosen = np.random.randint(0, len(active_linear), size=n)
+        coords = {}
+        for dim, dim_chunk_indices in zip(dims, chunk_indices, strict=True):
+            chunk_size = chunk_sizes[dim]
+            lo = dim_chunk_indices * chunk_size
+            hi = np.minimum((dim_chunk_indices + 1) * chunk_size, ds.sizes[dim])
+            coord = np.random.uniform(size=lo.size) * (hi - lo) + lo
+            if coord.size>=n:
+                coords[dim] = coord[:n]
+            else:
+                coords[dim] = np.concat((coord, np.random.uniform(size=n-coord.size)))
+    
+        
+        return coords
 
     def floor_it_all(positions):
         return {k: np.floor(v).astype(int) for k, v in positions.items()}
@@ -353,8 +337,9 @@ def _(ds, n_particles, np, xr):
     def wrap_in_da(positions):
         return {k: xr.DataArray(arr, dims=("points")) for k, arr in positions.items()}
 
-    positions = wrap_in_da(floor_it_all(get_barycentric_coordinates(n_particles, ds)))
-
+    positions = wrap_in_da(floor_it_all(get_barycentric_coordinates(
+        n_particles, ds, chunks_covered.value, chunk_size_per_dim, chunks_per_dim_count
+    )))
     return (positions,)
 
 
@@ -372,8 +357,8 @@ def _(ds, positions):
 
 @app.cell
 def _(queried):
-    data = queried["V_A_grid"].data
-    data.visualize(filename="transpose.svg")
+    data = queried['V_A_grid'].data
+    data.visualize(filename='transpose.svg')
     return
 
 
