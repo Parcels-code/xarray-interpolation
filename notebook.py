@@ -297,29 +297,11 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(ds):
-    _z_store = zarr.open("datasets/ds_2d_left_agrid.zarr", mode="r")
-    assert isinstance(_z_store, zarr.Group)
-    _chunk_meta = _z_store["V_A_grid"]
-    assert isinstance(_chunk_meta, zarr.Array)
-    chunk_size_per_dim = dict(zip(ds.sizes.keys(), _chunk_meta.chunks))
-    chunks_per_dim_count = {
-        d: math.ceil(ds.sizes[d] / chunk_size_per_dim[d]) for d in ds.sizes
-    }
-    total_chunks = _chunk_meta.nchunks
+def _():
 
-    chunks_covered = mo.ui.slider(
-        0, total_chunks, step=1, label="Chunks covered: ", value=total_chunks
-    )
 
     n = mo.ui.slider(start=2, stop=7, step=1, label="Number of particles (10^n): ")
-    return (
-        chunk_size_per_dim,
-        chunks_covered,
-        chunks_per_dim_count,
-        n,
-        total_chunks,
-    )
+    return (n,)
 
 
 @app.cell(hide_code=True)
@@ -336,66 +318,38 @@ def _(chunks_covered, n, total_chunks):
     return (n_particles,)
 
 
-@app.cell
-def _():
-    zarr.open("datasets/ds_2d_left_agrid.zarr", mode="r")["V_A_grid"].chunks
-    return
+@app.function
+def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_counts):
+    dims = list(ds.sizes.keys())
+    counts_tuple = tuple(chunk_counts[d] for d in dims)
+    assert n_active_chunks>0
+    assert n>0
+
+    # Map linear chunk indices → per-dim chunk indices
+    active_chunks = np.arange(min(n_active_chunks, int(np.prod(counts_tuple))))
+    chunk_indices = np.unravel_index(active_chunks, counts_tuple)
+    coords = {}
+    for dim, dim_chunk_indices in zip(dims, chunk_indices, strict=True):
+        chunk_size = chunk_sizes[dim]
+        lo = dim_chunk_indices * chunk_size
+        hi = np.minimum((dim_chunk_indices + 1) * chunk_size, ds.sizes[dim])
+        coord = np.random.uniform(size=lo.size) * (hi - lo) + lo
+        if coord.size >= n:
+            coords[dim] = coord[:n]
+        else:
+            coords[dim] = np.concat((coord, np.random.uniform(size=n - coord.size)))
+
+    return coords
 
 
-@app.cell
-def _(
-    chunk_size_per_dim,
-    chunks_covered,
-    chunks_per_dim_count,
-    ds,
-    n_particles,
-):
-    def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_counts):
-        dims = list(ds.sizes.keys())
-        counts_tuple = tuple(chunk_counts[d] for d in dims)
-        assert n_active_chunks > 0
-        assert n > 0
-
-        # Map linear chunk indices → per-dim chunk indices
-        active_chunks = np.arange(min(n_active_chunks, int(np.prod(counts_tuple))))
-        chunk_indices = np.unravel_index(active_chunks, counts_tuple)
-        coords = {}
-        for dim, dim_chunk_indices in zip(dims, chunk_indices, strict=True):
-            chunk_size = chunk_sizes[dim]
-            lo = dim_chunk_indices * chunk_size
-            hi = np.minimum((dim_chunk_indices + 1) * chunk_size, ds.sizes[dim])
-            coord = np.random.uniform(size=lo.size) * (hi - lo) + lo
-            if coord.size >= n:
-                coords[dim] = coord[:n]
-            else:
-                coords[dim] = np.concat((coord, np.random.uniform(size=n - coord.size)))
-
-        return coords
-
-    def floor_it_all(positions):
-        return {k: np.floor(v).astype(int) for k, v in positions.items()}
-
-    def wrap_in_da(positions):
-        return {k: xr.DataArray(arr, dims=("points")) for k, arr in positions.items()}
-
-    positions = wrap_in_da(
-        floor_it_all(
-            get_barycentric_coordinates(
-                n_particles,
-                ds,
-                chunks_covered.value,
-                chunk_size_per_dim,
-                chunks_per_dim_count,
-            )
-        )
-    )
-    return (positions,)
+@app.function
+def floor_it_all(positions):
+    return {k: np.floor(v).astype(int) for k, v in positions.items()}
 
 
-@app.cell
-def _(positions):
-    positions
-    return
+@app.function
+def wrap_in_da(positions):
+    return {k: xr.DataArray(arr, dims=("points")) for k, arr in positions.items()}
 
 
 @app.cell
@@ -407,8 +361,69 @@ def _(ds, positions):
 @app.cell
 def _(queried):
     data = queried["V_A_grid"].data
-    data
     # data.visualize(filename="transpose.svg")
+    return
+
+
+@app.cell
+def _(ds, n_particles, self):
+    from dataclasses import dataclass
+    from typing import Any
+
+    class Setup:
+        def __init__(open_zarr_kwargs: dict[str, Any], n_particles: int,chunk_coverage: float): # % of chunks that are covered
+            assert "store" in open_zarr_kwargs
+            assert isinstance(open_zarr_kwargs['store'], (str, Path))
+            self.open_zarr_kwargs = open_zarr_kwargs
+            self.n_particles = n_particles
+            self.chunk_coverage = chunk_coverage
+    
+
+        def get_ds(self):
+            self.ds = xr.open_zarr(**self.open_zarr_kwargs)
+        
+        def get_particle_positions(self):
+            _z_store = zarr.open(self.open_zarr_kwargs['store'], mode="r")
+            assert isinstance(_z_store, zarr.Group)
+            _chunk_meta = _z_store["V_A_grid"]
+            assert isinstance(_chunk_meta, zarr.Array)
+            chunk_size_per_dim = dict(zip(ds.sizes.keys(), _chunk_meta.chunks))
+            chunks_per_dim_count = {
+                d: math.ceil(ds.sizes[d] / chunk_size_per_dim[d]) for d in ds.sizes
+            }
+            total_chunks = _chunk_meta.nchunks
+        
+            chunks_covered = mo.ui.slider(
+                0, total_chunks, step=1, label="Chunks covered: ", value=total_chunks
+            )
+
+            positions = wrap_in_da(
+                floor_it_all(
+                    get_barycentric_coordinates(
+                        n_particles,
+                        ds,
+                        chunks_covered.value,
+                        chunk_size_per_dim,
+                        chunks_per_dim_count,
+                    )
+                )
+            )
+            self.positions  = positions
+
+        def setup(self):
+            self.get_ds()
+            self.get_particle_positions()
+
+        def teardown(self):
+            self.ds = None
+            self.positions = None
+
+    class TestCase:
+        ...
+    
+        
+    
+
     return
 
 
