@@ -1,0 +1,23 @@
+[workspace]
+name = "xarray-interpolation"
+version = "0.1.0"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+[dependencies]
+python = ">=3.14"
+numpy = ">=2.4"
+xarray = ">=2026.4"
+dask = ">=2026.3"
+zarr = ">=3"
+marimo = "*"
+graphviz = ">=0.21"
+
+[feature.typecheck.dependencies]
+mypy = "*"
+
+[feature.typecheck.tasks]
+typecheck = { cmd = "mypy", default-environment = "typecheck" }
+
+[environments]
+typecheck = ["typecheck"]

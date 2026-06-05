@@ -1,3 +1,4 @@
 datasets
 __marimo__
 *.svg
+.mypy_cache

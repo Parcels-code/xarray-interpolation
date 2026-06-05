@@ -1,15 +1,3 @@
-# /// script
-# dependencies = [
-#     "dask==2026.3.0",
-#     "graphviz==0.21",
-#     "marimo",
-#     "numpy==2.4.6",
-#     "xarray==2026.4.0",
-#     "zarr==3.2.1",
-# ]
-# requires-python = ">=3.14"
-# ///
-
 import marimo
 
 __generated_with = "0.23.9"
