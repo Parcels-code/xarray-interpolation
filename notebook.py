@@ -37,19 +37,39 @@ def data_generation():
         LON, LAT = np.meshgrid(XG, YG)
 
         angle = -np.pi / 24
-        rotation = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+        rotation = np.array(
+            [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+        )
 
         # rotate the LON and LAT grids
         LON, LAT = np.einsum("ji, mni -> jmn", rotation, np.dstack([LON, LAT]))
 
         return xr.Dataset(
             {
-                "data_g": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "data_c": (["time", "ZC", "YC", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "U_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "V_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "U_C_grid": (["time", "ZG", "YC", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "V_C_grid": (["time", "ZG", "YG", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "data_g": (
+                    ["time", "ZG", "YG", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "data_c": (
+                    ["time", "ZC", "YC", "XC"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "U_A_grid": (
+                    ["time", "ZG", "YG", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "V_A_grid": (
+                    ["time", "ZG", "YG", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "U_C_grid": (
+                    ["time", "ZG", "YC", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "V_C_grid": (
+                    ["time", "ZG", "YG", "XC"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
             },
             coords={
                 "XG": (["XG"], XG, {"axis": "X", "c_grid_axis_shift": -0.5}),
@@ -89,12 +109,10 @@ def data_generation():
         theta = np.arctan2(y, x)
         return r, theta
 
-
     def _polar_to_cartesian(r, theta):
         x = r * np.cos(theta)
         y = r * np.sin(theta)
         return x, y
-
 
     def _unrolled_cone_curvilinear_grid():
         # Not a great unrolled cone, but this is good enough for testing
@@ -124,12 +142,30 @@ def data_generation():
 
         return xr.Dataset(
             {
-                "data_g": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "data_c": (["time", "ZC", "YC", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "U_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "V_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "U_C_grid": (["time", "ZG", "YC", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "V_C_grid": (["time", "ZG", "YG", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "data_g": (
+                    ["time", "ZG", "YG", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "data_c": (
+                    ["time", "ZC", "YC", "XC"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "U_A_grid": (
+                    ["time", "ZG", "YG", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "V_A_grid": (
+                    ["time", "ZG", "YG", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "U_C_grid": (
+                    ["time", "ZG", "YC", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "V_C_grid": (
+                    ["time", "ZG", "YG", "XC"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
             },
             coords={
                 "XG": (["XG"], XG, {"axis": "X", "c_grid_axis_shift": -0.5}),
@@ -161,17 +197,34 @@ def data_generation():
             },
         )
 
-
     datasets = {
         "2d_left_rotated": _rotated_curvilinear_grid(),
         "ds_2d_left": xr.Dataset(  # MITgcm indexing style
             {
-                "data_g": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "data_c": (["time", "ZC", "YC", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "U_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "V_A_grid": (["time", "ZG", "YG", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "U_C_grid": (["time", "ZG", "YC", "XG"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
-                "V_C_grid": (["time", "ZG", "YG", "XC"], random_dask_array(scaling=5, shape=(T, Z, Y, X))),
+                "data_g": (
+                    ["time", "ZG", "YG", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "data_c": (
+                    ["time", "ZC", "YC", "XC"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "U_A_grid": (
+                    ["time", "ZG", "YG", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "V_A_grid": (
+                    ["time", "ZG", "YG", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "U_C_grid": (
+                    ["time", "ZG", "YC", "XG"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
+                "V_C_grid": (
+                    ["time", "ZG", "YG", "XC"],
+                    random_dask_array(scaling=5, shape=(T, Z, Y, X)),
+                ),
             },
             coords={
                 "XG": (
@@ -209,8 +262,6 @@ def data_generation():
         "2d_left_unrolled_cone": _unrolled_cone_curvilinear_grid(),
     }
 
-
-
     def save(ds: xr.Dataset, path: str, chunks: dict) -> None:
         """Save dataset to zarr with specified chunking."""
         store = LocalStore(path)
@@ -224,7 +275,7 @@ def data_generation():
         print(f"Dataset {dataset_path} already exists")
     else:
         save(
-            datasets['ds_2d_left'][["U_A_grid", "V_A_grid"]],
+            datasets["ds_2d_left"][["U_A_grid", "V_A_grid"]],
             dataset_path,
             {"time": 15, "XG": 40, "YG": 40, "ZG": 8},
         )
@@ -251,12 +302,15 @@ def _(ds):
     assert isinstance(_z_store, zarr.Group)
     _chunk_meta = _z_store["V_A_grid"]
     assert isinstance(_chunk_meta, zarr.Array)
-    reveal_type(_)
     chunk_size_per_dim = dict(zip(ds.sizes.keys(), _chunk_meta.chunks))
-    chunks_per_dim_count = {d: math.ceil(ds.sizes[d] / chunk_size_per_dim[d]) for d in ds.sizes}
+    chunks_per_dim_count = {
+        d: math.ceil(ds.sizes[d] / chunk_size_per_dim[d]) for d in ds.sizes
+    }
     total_chunks = _chunk_meta.nchunks
 
-    chunks_covered = mo.ui.slider(0, total_chunks, step=1, label="Chunks covered: ", value=total_chunks)
+    chunks_covered = mo.ui.slider(
+        0, total_chunks, step=1, label="Chunks covered: ", value=total_chunks
+    )
 
     n = mo.ui.slider(start=2, stop=7, step=1, label="Number of particles (10^n): ")
     return (
@@ -271,14 +325,20 @@ def _(ds):
 @app.cell(hide_code=True)
 def _(chunks_covered, n, n_particles, total_chunks):
 
-
-    mo.vstack([n, mo.md(f"$10^{n.value}={n_particles}$ particles"), chunks_covered, mo.md(f"**{chunks_covered.value}** / {total_chunks} chunks covered")])
+    mo.vstack(
+        [
+            n,
+            mo.md(f"$10^{n.value}={n_particles}$ particles"),
+            chunks_covered,
+            mo.md(f"**{chunks_covered.value}** / {total_chunks} chunks covered"),
+        ]
+    )
     return
 
 
 @app.cell
 def _():
-    zarr.open("datasets/ds_2d_left_agrid.zarr", mode="r")['V_A_grid'].chunks
+    zarr.open("datasets/ds_2d_left_agrid.zarr", mode="r")["V_A_grid"].chunks
     return
 
 
@@ -298,22 +358,19 @@ def _(
             return {k: np.array([], dtype=float) for k in dims}
 
         # Map linear chunk indices → per-dim chunk indices
-        active_linear = np.arange(min(n_active_chunks, int(np.prod(counts_tuple))))
-        chunk_indices = np.unravel_index(active_linear, counts_tuple)
-        # Assign each particle to a random active chunk, sample uniformly within it
-        chosen = np.random.randint(0, len(active_linear), size=n)
+        active_chunks = np.arange(min(n_active_chunks, int(np.prod(counts_tuple))))
+        chunk_indices = np.unravel_index(active_chunks, counts_tuple)
         coords = {}
         for dim, dim_chunk_indices in zip(dims, chunk_indices, strict=True):
             chunk_size = chunk_sizes[dim]
             lo = dim_chunk_indices * chunk_size
             hi = np.minimum((dim_chunk_indices + 1) * chunk_size, ds.sizes[dim])
             coord = np.random.uniform(size=lo.size) * (hi - lo) + lo
-            if coord.size>=n:
+            if coord.size >= n:
                 coords[dim] = coord[:n]
             else:
-                coords[dim] = np.concat((coord, np.random.uniform(size=n-coord.size)))
-    
-        
+                coords[dim] = np.concat((coord, np.random.uniform(size=n - coord.size)))
+
         return coords
 
     def floor_it_all(positions):
@@ -322,9 +379,17 @@ def _(
     def wrap_in_da(positions):
         return {k: xr.DataArray(arr, dims=("points")) for k, arr in positions.items()}
 
-    positions = wrap_in_da(floor_it_all(get_barycentric_coordinates(
-        n_particles, ds, chunks_covered.value, chunk_size_per_dim, chunks_per_dim_count
-    )))
+    positions = wrap_in_da(
+        floor_it_all(
+            get_barycentric_coordinates(
+                n_particles,
+                ds,
+                chunks_covered.value,
+                chunk_size_per_dim,
+                chunks_per_dim_count,
+            )
+        )
+    )
     return (positions,)
 
 
@@ -342,8 +407,8 @@ def _(ds, positions):
 
 @app.cell
 def _(queried):
-    data = queried['V_A_grid'].data
-    data.visualize(filename='transpose.svg')
+    data = queried["V_A_grid"].data
+    data.visualize(filename="transpose.svg")
     return
 
 
