@@ -353,9 +353,8 @@ def _(
     def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_counts):
         dims = list(ds.sizes.keys())
         counts_tuple = tuple(chunk_counts[d] for d in dims)
-
-        if n_active_chunks == 0 or n == 0:
-            return {k: np.array([], dtype=float) for k in dims}
+        assert n_active_chunks>0
+        assert n>0
 
         # Map linear chunk indices → per-dim chunk indices
         active_chunks = np.arange(min(n_active_chunks, int(np.prod(counts_tuple))))
