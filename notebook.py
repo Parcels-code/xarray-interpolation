@@ -16,7 +16,9 @@ with app.setup:
     from zarr.storage import LocalStore
     import marimo as mo
     import zarr
+    from contextlib import contextmanager
     import math
+    import json
 
 
 @app.cell(hide_code=True)
@@ -292,30 +294,28 @@ def data_generation():
 
 @app.cell
 def _():
-    ds = xr.open_zarr("datasets/ds_2d_left_agrid.zarr", consolidated=False)
-    return (ds,)
+    # ds = xr.open_zarr("datasets/ds_2d_left_agrid.zarr", consolidated=False)
+    return
 
 
 @app.cell(hide_code=True)
 def _():
-
-
     n = mo.ui.slider(start=2, stop=7, step=1, label="Number of particles (10^n): ")
-    return (n,)
+    chunk_coverage_prop = mo.ui.slider(start=0, stop=1, step=0.001, label="Chunk coverage proportion: ")
+    return chunk_coverage_prop, n
 
 
 @app.cell(hide_code=True)
-def _(chunks_covered, n, total_chunks):
+def _(chunk_coverage_prop, n):
     n_particles = 10**n.value
     mo.vstack(
         [
             n,
             mo.md(f"$10^{n.value}={n_particles}$ particles"),
-            chunks_covered,
-            mo.md(f"**{chunks_covered.value}** / {total_chunks} chunks covered"),
+            chunk_coverage_prop,
         ]
     )
-    return (n_particles,)
+    return
 
 
 @app.function
@@ -353,36 +353,39 @@ def wrap_in_da(positions):
 
 
 @app.cell
-def _(ds, positions):
-    queried = ds.isel(positions)
-    return (queried,)
-
-
-@app.cell
-def _(queried):
-    data = queried["V_A_grid"].data
-    # data.visualize(filename="transpose.svg")
+def _():
+    # queried = ds.isel(positions)
     return
 
 
 @app.cell
-def _(ds, n_particles, self):
+def _():
+    # data = queried["V_A_grid"].data
+    # data.visualize(filename="transpose.svg")
+    return
+
+
+app._unparsable_cell(
+    r"""
     from dataclasses import dataclass
     from typing import Any
 
-    class Setup:
-        def __init__(open_zarr_kwargs: dict[str, Any], n_particles: int,chunk_coverage: float): # % of chunks that are covered
+    class Data:
+        def __init__(self, open_zarr_kwargs: dict[str, Any], n_particles: int,chunk_coverage: float): # % of chunks that are covered
             assert "store" in open_zarr_kwargs
             assert isinstance(open_zarr_kwargs['store'], (str, Path))
             self.open_zarr_kwargs = open_zarr_kwargs
             self.n_particles = n_particles
+            assert 0< chunk_coverage<=1.
             self.chunk_coverage = chunk_coverage
-    
+
 
         def get_ds(self):
-            self.ds = xr.open_zarr(**self.open_zarr_kwargs)
-        
+            return xr.open_zarr(**self.open_zarr_kwargs)
+
         def get_particle_positions(self):
+            ds = self.ds
+            chunks_coverage = self.chunk_coverage
             _z_store = zarr.open(self.open_zarr_kwargs['store'], mode="r")
             assert isinstance(_z_store, zarr.Group)
             _chunk_meta = _z_store["V_A_grid"]
@@ -392,38 +395,65 @@ def _(ds, n_particles, self):
                 d: math.ceil(ds.sizes[d] / chunk_size_per_dim[d]) for d in ds.sizes
             }
             total_chunks = _chunk_meta.nchunks
-        
-            chunks_covered = mo.ui.slider(
-                0, total_chunks, step=1, label="Chunks covered: ", value=total_chunks
-            )
+
+            chunks_covered = int(chunks_coverage*total_chunks)
 
             positions = wrap_in_da(
                 floor_it_all(
                     get_barycentric_coordinates(
                         n_particles,
                         ds,
-                        chunks_covered.value,
+                        chunks_covered,
                         chunk_size_per_dim,
                         chunks_per_dim_count,
                     )
                 )
             )
-            self.positions  = positions
+            return positions
 
+        @contextmanager
         def setup(self):
-            self.get_ds()
-            self.get_particle_positions()
+            self.ds = self.get_ds()
+            self.positions = self.get_particle_positions()
+            yield self.ds, self.positions
+            self.ds=None
+            self.positions=None
 
-        def teardown(self):
-            self.ds = None
-            self.positions = None
+        def to_dict(self):
+            return dict(
+    open_zarr_kwargs=             repr(self.open_zarr_kwargs)
+    n_particles=        self.n_particles
+    chunk_coverage=        self.chunk_coverage
+            )
+
+        
 
     class TestCase:
         ...
-    
-        
-    
 
+    default_data = Data({"store": "datasets/ds_2d_left_agrid.zarr", "consolidated": False}, n_particles=n_particles,chunk_coverage=chunk_coverage_prop.value)
+
+
+    """,
+    name="_"
+)
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _(default):
+    with default.setup() as (ds, pos):
+        breakpoint()
+    return
+
+
+@app.cell
+def _(default):
+    default.setup()
     return
 
 
