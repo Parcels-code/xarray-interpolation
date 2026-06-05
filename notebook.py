@@ -3,9 +3,7 @@ import marimo
 __generated_with = "0.23.9"
 app = marimo.App(width="medium")
 
-
-@app.cell
-def setup_1():
+with app.setup:
     import numpy as np
     import xarray as xr
 
@@ -20,11 +18,9 @@ def setup_1():
     import zarr
     import math
 
-    return LocalStore, Path, da, math, mo, np, operator, reduce, xr, zarr
-
 
 @app.cell(hide_code=True)
-def data_generation(LocalStore, Path, da, mo, np, operator, reduce, xr):
+def data_generation():
     X = 1000
     Y = 1000
     Z = 50
@@ -244,15 +240,18 @@ def data_generation(LocalStore, Path, da, mo, np, operator, reduce, xr):
 
 
 @app.cell
-def _(xr):
+def _():
     ds = xr.open_zarr("datasets/ds_2d_left_agrid.zarr", consolidated=False)
     return (ds,)
 
 
 @app.cell(hide_code=True)
-def _(ds, math, mo, zarr):
+def _(ds):
     _z_store = zarr.open("datasets/ds_2d_left_agrid.zarr", mode="r")
+    assert isinstance(_z_store, zarr.Group)
     _chunk_meta = _z_store["V_A_grid"]
+    assert isinstance(_chunk_meta, zarr.Array)
+    reveal_type(_)
     chunk_size_per_dim = dict(zip(ds.sizes.keys(), _chunk_meta.chunks))
     chunks_per_dim_count = {d: math.ceil(ds.sizes[d] / chunk_size_per_dim[d]) for d in ds.sizes}
     total_chunks = _chunk_meta.nchunks
@@ -270,7 +269,7 @@ def _(ds, math, mo, zarr):
 
 
 @app.cell(hide_code=True)
-def _(chunks_covered, mo, n, n_particles, total_chunks):
+def _(chunks_covered, n, n_particles, total_chunks):
 
 
     mo.vstack([n, mo.md(f"$10^{n.value}={n_particles}$ particles"), chunks_covered, mo.md(f"**{chunks_covered.value}** / {total_chunks} chunks covered")])
@@ -278,7 +277,7 @@ def _(chunks_covered, mo, n, n_particles, total_chunks):
 
 
 @app.cell
-def _(zarr):
+def _():
     zarr.open("datasets/ds_2d_left_agrid.zarr", mode="r")['V_A_grid'].chunks
     return
 
@@ -290,8 +289,6 @@ def _(
     chunks_per_dim_count,
     ds,
     n_particles,
-    np,
-    xr,
 ):
     def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_counts):
         dims = list(ds.sizes.keys())
