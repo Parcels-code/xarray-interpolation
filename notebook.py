@@ -323,8 +323,8 @@ def _(ds):
 
 
 @app.cell(hide_code=True)
-def _(chunks_covered, n, n_particles, total_chunks):
-
+def _(chunks_covered, n, total_chunks):
+    n_particles = 10**n.value
     mo.vstack(
         [
             n,
@@ -333,7 +333,7 @@ def _(chunks_covered, n, n_particles, total_chunks):
             mo.md(f"**{chunks_covered.value}** / {total_chunks} chunks covered"),
         ]
     )
-    return
+    return (n_particles,)
 
 
 @app.cell
@@ -353,8 +353,8 @@ def _(
     def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_counts):
         dims = list(ds.sizes.keys())
         counts_tuple = tuple(chunk_counts[d] for d in dims)
-        assert n_active_chunks>0
-        assert n>0
+        assert n_active_chunks > 0
+        assert n > 0
 
         # Map linear chunk indices → per-dim chunk indices
         active_chunks = np.arange(min(n_active_chunks, int(np.prod(counts_tuple))))
@@ -407,7 +407,8 @@ def _(ds, positions):
 @app.cell
 def _(queried):
     data = queried["V_A_grid"].data
-    data.visualize(filename="transpose.svg")
+    data
+    # data.visualize(filename="transpose.svg")
     return
 
 
