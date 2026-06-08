@@ -152,7 +152,7 @@ Profiler = Callable[
 ]  # Functions that take a folder and save a profiling report
 
 
-def execution_profile_task(folder: Path, data: Data, task: Task):
+def profile_execution_time(folder: Path, data: Data, task: Task):
     assert folder.is_dir()
     assert folder.exists()
     report = folder / f"cprofile_{task.name}_{get_current_time()}.prof"
@@ -166,7 +166,7 @@ def execution_profile_task(folder: Path, data: Data, task: Task):
     return report
 
 
-def memory_profile_task(folder: Path, data: Data, task: Task) -> Path:
+def profile_memory(folder: Path, data: Data, task: Task) -> Path:
     assert folder.is_dir()
     assert folder.exists()
     report = folder / f"memray_{task.name}_{get_current_time()}.bin"
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     Workspace(
         folder=Path("single-interpolation"),
         test_cases=[
-            (default_data, SingleInterpolation(), execution_profile_task),
-            (default_data, SingleInterpolation(), memory_profile_task),
+            (default_data, SingleInterpolation(), profile_execution_time),
+            (default_data, SingleInterpolation(), profile_memory),
         ],
     ).run_test_cases()
