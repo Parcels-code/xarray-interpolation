@@ -7,3 +7,4 @@ __marimo__
 __pycache__
 *.bin
 *.html
+output

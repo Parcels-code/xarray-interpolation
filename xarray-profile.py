@@ -19,6 +19,8 @@ from dataclasses import dataclass
 CHUNK_COVERAGE_PROP = 0.2
 N_PARTICLES = 10**5
 
+OUTPUT_FOLDER = Path("output")
+
 
 def get_current_time() -> str:
     t = time.localtime()
@@ -152,7 +154,7 @@ Profiler = Callable[
 ]  # Functions that take a folder and save a profiling report
 
 
-def profile_execution_time(folder: Path, data: Data, task: Task):
+def profile_execution_time(folder: Path, data: Data, task: Task) -> Path:
     assert folder.is_dir()
     assert folder.exists()
     report = folder / f"cprofile_{task.name}_{get_current_time()}.prof"
@@ -180,7 +182,7 @@ def profile_memory(folder: Path, data: Data, task: Task) -> Path:
 @dataclass
 class Workspace:
     folder: Path
-    test_cases: list[tuple[Data, Task, Profiler]]
+    test_cases: list[tuple[Profiler, Task, Data]]
 
     def run_test_cases(self):
         if self.folder.exists():
@@ -190,7 +192,7 @@ class Workspace:
             raise RuntimeError(msg)
         self.folder.mkdir()
         summary = {"test_cases": []}  # type: ignore[var-annotated]
-        for data, task, profiler in self.test_cases:
+        for profiler, task, data in self.test_cases:
             report = profiler(self.folder, data, task)
             summary["test_cases"].append(
                 {
@@ -205,10 +207,12 @@ class Workspace:
 
 
 if __name__ == "__main__":
+    OUTPUT_FOLDER.mkdir(exist_ok=True)
+
     Workspace(
-        folder=Path("single-interpolation"),
+        folder=OUTPUT_FOLDER / "single-interpolation",
         test_cases=[
-            (default_data, SingleInterpolation(), profile_execution_time),
-            (default_data, SingleInterpolation(), profile_memory),
+            (profile_execution_time, SingleInterpolation(), default_data),
+            (profile_memory, SingleInterpolation(), default_data),
         ],
     ).run_test_cases()
