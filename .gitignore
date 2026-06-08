@@ -5,3 +5,5 @@ __marimo__
 *.prof
 **.pyc
 __pycache__
+*.bin
+*.html
