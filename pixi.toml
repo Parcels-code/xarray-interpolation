@@ -14,12 +14,7 @@ marimo = "*"
 graphviz = ">=0.21"
 snakeviz = ">=2.2.2,<3"
 memray = ">=1.19.3,<2"
-
-[feature.typecheck.dependencies]
 mypy = "*"
 
-[feature.typecheck.tasks]
-typecheck = { cmd = "mypy", default-environment = "typecheck" }
-
-[environments]
-typecheck = ["typecheck"]
+[tasks]
+typecheck = { cmd = "mypy" }
