@@ -19,7 +19,7 @@ import json
 import zarr.storage
 from dataclasses import dataclass
 
-# dataset size is ~24Gb. To simulate particles occupying in-memory chunks (an assumption that will hold for Parcels), we set the coverage proportion to be aligned with our machine RAM
+# full dataset size is ~24Gb. To simulate particles occupying in-memory chunks (an assumption that will hold for Parcels), we set the coverage proportion to be aligned with our machine RAM
 # i.e., if our usable memory is 2Gb, coverage proportion should be less than 2/24 = 0.083
 
 DEFAULT_CHUNK_COVERAGE_PROP = 0.03  # 3% coverage
@@ -92,7 +92,7 @@ class Data:
         self.postprocess_ds: Callable[[xr.Dataset], xr.Dataset] | None = None
 
     def __copy__(self):
-        ret =  type(self)(
+        ret = type(self)(
             self.open_zarr_kwargs.copy(),
             self.n_particles,
             self.chunk_coverage,
@@ -164,13 +164,13 @@ DEFAULT_DATA = Data(
     {"store": "datasets/ds_2d_left_agrid.zarr", "consolidated": False},
     n_particles=N_PARTICLES,
     chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
-)
+)  # ~24Gb uncompressed
 
 DEFAULT_DATA_SMALL = Data(
     {"store": "datasets/ds_2d_left_agrid_small.zarr", "consolidated": False},
     n_particles=N_PARTICLES,
     chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
-)
+)  # ~1Gb uncompressed
 
 
 class Task(ABC):
