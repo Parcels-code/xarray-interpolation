@@ -1,5 +1,5 @@
 [tool.mypy]
-files = ["notebook.py"]
+files = ["data-generation.py", "xarray-profile.py"]
 check_untyped_defs = true
 show_error_context = true
 warn_redundant_casts = true

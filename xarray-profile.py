@@ -189,7 +189,7 @@ class Workspace:
             )
             raise RuntimeError(msg)
         self.folder.mkdir()
-        summary = {"test_cases": []}
+        summary = {"test_cases": []}  # type: ignore[var-annotated]
         for data, task, profiler in self.test_cases:
             report = profiler(self.folder, data, task)
             summary["test_cases"].append(
