@@ -16,7 +16,7 @@ import time
 import json
 from dataclasses import dataclass
 
-CHUNK_COVERAGE_PROP = 0.2
+DEFAULT_CHUNK_COVERAGE_PROP = 0.2
 N_PARTICLES = 10**5
 
 OUTPUT_FOLDER = Path("output")
@@ -119,10 +119,10 @@ class Data:
         )
 
 
-default_data = Data(
+DEFAULT_DATA = Data(
     {"store": "datasets/ds_2d_left_agrid.zarr", "consolidated": False},
     n_particles=N_PARTICLES,
-    chunk_coverage=CHUNK_COVERAGE_PROP,
+    chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
 )
 
 
@@ -212,7 +212,7 @@ if __name__ == "__main__":
     Workspace(
         folder=OUTPUT_FOLDER / "single-interpolation",
         test_cases=[
-            (profile_execution_time, SingleInterpolation(), default_data),
-            (profile_memory, SingleInterpolation(), default_data),
+            (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
+            (profile_memory, SingleInterpolation(), DEFAULT_DATA),
         ],
     ).run_test_cases()
