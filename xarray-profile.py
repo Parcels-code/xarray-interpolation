@@ -142,6 +142,12 @@ DEFAULT_DATA = Data(
     chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
 )
 
+DEFAULT_DATA_SMALL = Data(
+    {"store": "datasets/ds_2d_left_agrid_small.zarr", "consolidated": False},
+    n_particles=N_PARTICLES,
+    chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
+)
+
 
 class Task(ABC):
     name: str
