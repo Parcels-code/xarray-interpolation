@@ -81,6 +81,7 @@ class Data:
         open_zarr_kwargs: dict[str, Any],
         n_particles: int,
         chunk_coverage: float,
+        postprocess_ds: Callable[[xr.Dataset], xr.Dataset] | None = None,
     ):  # % of chunks that are covered
         assert "store" in open_zarr_kwargs
         assert isinstance(open_zarr_kwargs["store"], (str, Path, Store))
@@ -88,9 +89,21 @@ class Data:
         self.n_particles = n_particles
         assert 0 < chunk_coverage <= 1.0
         self.chunk_coverage = chunk_coverage
+        self.postprocess_ds = postprocess_ds
+
+    def __copy__(self):
+        return type(self)(
+            self.open_zarr_kwargs.copy(),
+            self.n_particles,
+            self.chunk_coverage,
+            self.postprocess_ds,
+        )
 
     def get_ds(self):
-        return xr.open_zarr(**self.open_zarr_kwargs)
+        ds = xr.open_zarr(**self.open_zarr_kwargs)
+        if self.postprocess_ds is not None:
+            return ds.pipe(self.postprocess_ds)
+        return ds
 
     def get_particle_positions(self):
         ds = self.ds
@@ -132,7 +145,8 @@ class Data:
         return (
             f"Data(open_zarr_kwargs={repr(self.open_zarr_kwargs)}, "
             f"n_particles={self.n_particles}, "
-            f"chunk_coverage={self.chunk_coverage})"
+            f"chunk_coverage={self.chunk_coverage}, "
+            f"postprocess_ds={self.postprocess_ds})"
         )
 
 
@@ -240,29 +254,53 @@ if __name__ == "__main__":
     #     ],
     # ).run_test_cases()
 
-    default_data_with_cache = Data(
-        {
-            "store": create_cache_store(
-                zarr.storage.LocalStore("datasets/ds_2d_left_agrid.zarr"),
-                2 * ONE_GB,
-            ),
-            "consolidated": False,
-        },
-        n_particles=N_PARTICLES,
-        chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
-    )
-    Workspace(
-        folder=OUTPUT_FOLDER / "compare-zarr-cache-single-call",
-        test_cases=[
-            (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
-            (profile_execution_time, SingleInterpolation(), default_data_with_cache),
-        ],
-    ).run_test_cases()
+    # default_data_with_cache = Data(
+    #     {
+    #         "store": create_cache_store(
+    #             zarr.storage.LocalStore("datasets/ds_2d_left_agrid.zarr"),
+    #             2 * ONE_GB,
+    #         ),
+    #         "consolidated": False,
+    #     },
+    #     n_particles=N_PARTICLES,
+    #     chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
+    # )
+    # Workspace(
+    #     folder=OUTPUT_FOLDER / "compare-zarr-cache-single-call",
+    #     test_cases=[
+    #         (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
+    #         (profile_execution_time, SingleInterpolation(), default_data_with_cache),
+    #     ],
+    # ).run_test_cases()
+
+    # Workspace(
+    #     folder=OUTPUT_FOLDER / "compare-zarr-cache-triple-call",
+    #     test_cases=[
+    #         (profile_execution_time, TripleInterpolation(), DEFAULT_DATA),
+    #         (profile_execution_time, TripleInterpolation(), default_data_with_cache),
+    #     ],
+    # ).run_test_cases()
+
+    def create_loaded_dataset(data: Data):
+        import copy
+
+        ret_data = copy.copy(data)
+        assert ret_data.postprocess_ds is None
+
+        def load_dataset(ds: xr.Dataset) -> xr.Dataset:
+            return ds.load()
+
+        ret_data.postprocess_ds = load_dataset
+        return ret_data
 
     Workspace(
-        folder=OUTPUT_FOLDER / "compare-zarr-cache-triple-call",
+        folder=OUTPUT_FOLDER / "compare-load-vs-dask",
         test_cases=[
-            (profile_execution_time, TripleInterpolation(), DEFAULT_DATA),
-            (profile_execution_time, TripleInterpolation(), default_data_with_cache),
+            (profile_execution_time, SingleInterpolation(), DEFAULT_DATA_SMALL),
+            (
+                profile_execution_time,
+                SingleInterpolation(),
+                create_loaded_dataset(DEFAULT_DATA_SMALL),
+            ),
         ],
     ).run_test_cases()
