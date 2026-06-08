@@ -36,6 +36,9 @@ def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_count
     assert n_active_chunks > 0
     assert n > 0
 
+    # set numpy seed (this is useful since repeated calls to this will simulate particles being in the same chunks/cells, meaning we can effectively use caching and represent real-world scenarios)
+    rng = np.random.default_rng(seed=22)
+
     # Map linear chunk indices → per-dim chunk indices
     active_chunks = np.arange(min(n_active_chunks, int(np.prod(counts_tuple))))
     chunk_indices = np.unravel_index(active_chunks, counts_tuple)
@@ -44,11 +47,11 @@ def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_count
         chunk_size = chunk_sizes[dim]
         lo = dim_chunk_indices * chunk_size
         hi = np.minimum((dim_chunk_indices + 1) * chunk_size, ds.sizes[dim])
-        coord = np.random.uniform(size=lo.size) * (hi - lo) + lo
+        coord = rng.uniform(size=lo.size) * (hi - lo) + lo
         if coord.size >= n:
             coords[dim] = coord[:n]
         else:
-            coords[dim] = np.concat((coord, np.random.uniform(size=n - coord.size)))
+            coords[dim] = np.concat((coord, rng.uniform(size=n - coord.size)))
 
     return coords
 
