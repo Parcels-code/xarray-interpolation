@@ -4,7 +4,7 @@ import xarray as xr
 from pathlib import Path
 
 import zarr
-
+from zarr.abc.store import Store
 from contextlib import contextmanager
 import math
 import cProfile
@@ -61,7 +61,7 @@ def wrap_in_da(positions):
     return {k: xr.DataArray(arr, dims=("points")) for k, arr in positions.items()}
 
 
-def create_cache_store(source_store, max_size: int):
+def create_cache_store(source_store: Store, max_size: int):
     from zarr.experimental.cache_store import CacheStore
 
     cache_store = zarr.storage.MemoryStore()
@@ -76,7 +76,7 @@ class Data:
         chunk_coverage: float,
     ):  # % of chunks that are covered
         assert "store" in open_zarr_kwargs
-        assert isinstance(open_zarr_kwargs["store"], (str, Path))
+        assert isinstance(open_zarr_kwargs["store"], (str, Path, Store))
         self.open_zarr_kwargs = open_zarr_kwargs
         self.n_particles = n_particles
         assert 0 < chunk_coverage <= 1.0
