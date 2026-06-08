@@ -23,4 +23,11 @@ All of this to illusrtate that the data access patterns within Lagrangian oceano
 
 By exploring the performance of Xarray when it comes to the interpolation of point-cloud data within data-cubes, we can hopefully measure how feasible it is to use Xarray in it's current state for integration in Lagrangian simulation frameworks. In the case of poor perforamnce, this profiling will hopefully show (a) what changes can be made to Xarray to enable this usecase, or (b) how Xarray users interested in this use case can use Xarray's current abstractions to achieve acceptable performance for this problem.
 
-### ...
+### Dev setup
+
+This repo uses cprofile and memray to profile executation time and memory consumption.
+
+Memray:
+
+- Run `memray flamegraph <file_name>` to convert memray output to a HTML representation
+- Run `python -m http.server 3000` to start an http server to view the file

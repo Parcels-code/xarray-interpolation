@@ -10,10 +10,19 @@ import cProfile
 import memray
 from abc import ABC, abstractmethod
 from typing import Any
+from typing import Callable
 
+import time
+import json
+from dataclasses import dataclass
 
 CHUNK_COVERAGE_PROP = 0.2
 N_PARTICLES = 10**5
+
+
+def get_current_time() -> str:
+    t = time.localtime()
+    return time.strftime("%Y%m%d-%H%M-%S", t)
 
 
 def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_counts):
@@ -123,14 +132,14 @@ class Task(ABC):
 
 
 class SingleInterpolation(Task):
-    name = "Single interpolation"
+    name = "single-interpolation"
 
     def run(self, ds: xr.Dataset, positions: xr.Dataset):
         ds.isel(positions).compute()
 
 
 class TripleInterpolation(Task):
-    name = "Triple interpolation"
+    name = "triple-interpolation"
 
     def run(self, ds: xr.Dataset, positions: xr.Dataset):
         ds.isel(positions).compute()
@@ -138,25 +147,68 @@ class TripleInterpolation(Task):
         ds.isel(positions).compute()
 
 
-def execution_profile_task(data: Data, task: Task):
+Profiler = Callable[
+    [Path, Data, Task], Path
+]  # Functions that take a folder and save a profiling report
+
+
+def execution_profile_task(folder: Path, data: Data, task: Task):
+    assert folder.is_dir()
+    assert folder.exists()
+    report = folder / f"cprofile_{task.name}_{get_current_time()}.prof"
+
     with data.setup() as (ds, positions):
         prof = cProfile.Profile()
         prof.enable()
         task.run(ds, positions)
         prof.disable()
-        prof.dump_stats("cprofile.prof")
-    return
+        prof.dump_stats(report)
+    return report
 
 
-def memory_profile_task(data: Data, task: Task):
+def memory_profile_task(folder: Path, data: Data, task: Task) -> Path:
+    assert folder.is_dir()
+    assert folder.exists()
+    report = folder / f"memray_{task.name}_{get_current_time()}.bin"
+
     with data.setup() as (ds, positions):
-        with memray.Tracker("memray.bin"):
+        with memray.Tracker(report):
             task.run(ds, positions)
-    return
+    return report
+
+
+@dataclass
+class Workspace:
+    folder: Path
+    test_cases: list[tuple[Data, Task, Profiler]]
+
+    def run_test_cases(self):
+        if self.folder.exists():
+            msg = (
+                f"Cannot run test cases. Output folder '{self.folder}' already exists."
+            )
+            raise RuntimeError(msg)
+        self.folder.mkdir()
+        summary = {"test_cases": []}
+        for data, task, profiler in self.test_cases:
+            report = profiler(self.folder, data, task)
+            summary["test_cases"].append(
+                {
+                    "data": repr(data),
+                    "task": task.name,
+                    "profiler": profiler.__name__ + "()",
+                    "profile_path": str(report.relative_to(self.folder)),
+                }
+            )
+        with open(self.folder / "summary.json", "w") as f:
+            json.dump(summary, f)
 
 
 if __name__ == "__main__":
-    data = default_data
-    task = SingleInterpolation()
-    execution_profile_task(data, task)
-    memory_profile_task(data, task)
+    Workspace(
+        folder=Path("single-interpolation"),
+        test_cases=[
+            (default_data, SingleInterpolation(), execution_profile_task),
+            (default_data, SingleInterpolation(), memory_profile_task),
+        ],
+    ).run_test_cases()
