@@ -226,13 +226,13 @@ class Workspace:
 if __name__ == "__main__":
     OUTPUT_FOLDER.mkdir(exist_ok=True)
 
-    Workspace(
-        folder=OUTPUT_FOLDER / "single-interpolation",
-        test_cases=[
-            (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
-            (profile_memory, SingleInterpolation(), DEFAULT_DATA),
-        ],
-    ).run_test_cases()
+    # Workspace(
+    #     folder=OUTPUT_FOLDER / "single-interpolation",
+    #     test_cases=[
+    #         (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
+    #         (profile_memory, SingleInterpolation(), DEFAULT_DATA),
+    #     ],
+    # ).run_test_cases()
 
     default_data_with_cache = Data(
         {
@@ -246,9 +246,17 @@ if __name__ == "__main__":
         chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
     )
     Workspace(
-        folder=OUTPUT_FOLDER / "compare-zarr-cache",
+        folder=OUTPUT_FOLDER / "compare-zarr-cache-single-call",
         test_cases=[
             (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
             (profile_execution_time, SingleInterpolation(), default_data_with_cache),
+        ],
+    ).run_test_cases()
+
+    Workspace(
+        folder=OUTPUT_FOLDER / "compare-zarr-cache-triple-call",
+        test_cases=[
+            (profile_execution_time, TripleInterpolation(), DEFAULT_DATA),
+            (profile_execution_time, TripleInterpolation(), default_data_with_cache),
         ],
     ).run_test_cases()
