@@ -11,6 +11,7 @@ import cProfile
 import memray
 from abc import ABC, abstractmethod
 from typing import Any
+import copy
 from typing import Callable
 
 import time
@@ -81,7 +82,6 @@ class Data:
         open_zarr_kwargs: dict[str, Any],
         n_particles: int,
         chunk_coverage: float,
-        postprocess_ds: Callable[[xr.Dataset], xr.Dataset] | None = None,
     ):  # % of chunks that are covered
         assert "store" in open_zarr_kwargs
         assert isinstance(open_zarr_kwargs["store"], (str, Path, Store))
@@ -89,15 +89,25 @@ class Data:
         self.n_particles = n_particles
         assert 0 < chunk_coverage <= 1.0
         self.chunk_coverage = chunk_coverage
-        self.postprocess_ds = postprocess_ds
+        self.postprocess_ds: Callable[[xr.Dataset], xr.Dataset] | None = None
 
     def __copy__(self):
-        return type(self)(
+        ret =  type(self)(
             self.open_zarr_kwargs.copy(),
             self.n_particles,
             self.chunk_coverage,
-            self.postprocess_ds,
         )
+        ret.postprocess_ds = copy.copy(self.postprocess_ds)
+        return ret
+
+    def then(self, *, postprocess_ds: Callable[[xr.Dataset], xr.Dataset]):
+        if self.postprocess_ds is not None:
+            raise NotImplementedError(
+                "self.postprocess_ds is already set. Chaining of post-processing is not yet implemented"
+            )
+        ret = copy.copy(self)
+        ret.postprocess_ds = postprocess_ds
+        return ret
 
     def get_ds(self):
         ds = xr.open_zarr(**self.open_zarr_kwargs)
@@ -281,17 +291,8 @@ if __name__ == "__main__":
     #     ],
     # ).run_test_cases()
 
-    def create_loaded_dataset(data: Data):
-        import copy
-
-        ret_data = copy.copy(data)
-        assert ret_data.postprocess_ds is None
-
-        def load_dataset(ds: xr.Dataset) -> xr.Dataset:
-            return ds.load()
-
-        ret_data.postprocess_ds = load_dataset
-        return ret_data
+    def load_dataset(ds: xr.Dataset) -> xr.Dataset:
+        return ds.load()
 
     Workspace(
         folder=OUTPUT_FOLDER / "compare-load-vs-dask",
@@ -300,7 +301,7 @@ if __name__ == "__main__":
             (
                 profile_execution_time,
                 SingleInterpolation(),
-                create_loaded_dataset(DEFAULT_DATA_SMALL),
+                DEFAULT_DATA_SMALL.then(postprocess_ds=load_dataset),
             ),
         ],
     ).run_test_cases()
