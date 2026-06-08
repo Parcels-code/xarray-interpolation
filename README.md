@@ -31,8 +31,8 @@ It uses [Pixi](https://pixi.prefix.dev/dev/installation/) - after installing, cd
 
 The main files in the repo are:
 
-- `data-generation.py` which creates needed example data. Run this before starting.
-- `xarray-profile.py`, which allows for the profiling of xarray behaviour under different schemes
+- [`data-generation.py`](./data-generation.py) which creates needed example data. Run this before starting.
+- [`xarray-profile.py`](./xarray-profile.py), which allows for the profiling of xarray behaviour under different schemes
   - this script is structured to allow:
     - easily modify the flow dataset as well as the seeding scheme (controlling number of chunks covered) via the `Data`
     - defining `Tasks` (i.e., things to do with the data - e.g., a single interpolation, or repeated interpolations)
