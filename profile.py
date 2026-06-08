@@ -7,6 +7,7 @@ import zarr
 from contextlib import contextmanager
 import math
 import cProfile
+import memray
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -147,5 +148,15 @@ def execution_profile_task(data: Data, task: Task):
     return
 
 
+def memory_profile_task(data: Data, task: Task):
+    with data.setup() as (ds, positions):
+        with memray.Tracker("memray.bin"):
+            task.run(ds, positions)
+    return
+
+
 if __name__ == "__main__":
-    execution_profile_task(default_data, SingleInterpolation())
+    data = default_data
+    task = SingleInterpolation()
+    execution_profile_task(data, task)
+    memory_profile_task(data, task)

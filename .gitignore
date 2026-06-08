@@ -3,3 +3,5 @@ __marimo__
 *.svg
 .mypy_cache
 *.prof
+**.pyc
+__pycache__

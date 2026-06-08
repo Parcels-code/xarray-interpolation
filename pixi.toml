@@ -13,6 +13,7 @@ zarr = ">=3"
 marimo = "*"
 graphviz = ">=0.21"
 snakeviz = ">=2.2.2,<3"
+memray = ">=1.19.3,<2"
 
 [feature.typecheck.dependencies]
 mypy = "*"
