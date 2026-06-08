@@ -18,7 +18,11 @@ import json
 import zarr.storage
 from dataclasses import dataclass
 
-DEFAULT_CHUNK_COVERAGE_PROP = 0.2
+# dataset size is ~24Gb. To simulate particles occupying in-memory chunks (an assumption that will hold for Parcels), we set the coverage proportion to be aligned with our machine RAM
+# i.e., if our usable memory is 2Gb, coverage proportion should be less than 2/24 = 0.083
+
+DEFAULT_CHUNK_COVERAGE_PROP = 0.03  # 3% coverage
+
 N_PARTICLES = 10**5
 ONE_GB = 1024 * 1024
 
