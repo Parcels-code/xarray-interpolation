@@ -4,6 +4,7 @@ import xarray as xr
 from pathlib import Path
 
 import zarr
+
 from contextlib import contextmanager
 import math
 import cProfile
@@ -14,10 +15,12 @@ from typing import Callable
 
 import time
 import json
+import zarr.storage
 from dataclasses import dataclass
 
 DEFAULT_CHUNK_COVERAGE_PROP = 0.2
 N_PARTICLES = 10**5
+ONE_GB = 1024 * 1024
 
 OUTPUT_FOLDER = Path("output")
 
@@ -56,6 +59,13 @@ def floor_it_all(positions):
 
 def wrap_in_da(positions):
     return {k: xr.DataArray(arr, dims=("points")) for k, arr in positions.items()}
+
+
+def create_cache_store(source_store, max_size: int):
+    from zarr.experimental.cache_store import CacheStore
+
+    cache_store = zarr.storage.MemoryStore()
+    return CacheStore(store=source_store, cache_store=cache_store, max_size=max_size)
 
 
 class Data:
@@ -214,5 +224,24 @@ if __name__ == "__main__":
         test_cases=[
             (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
             (profile_memory, SingleInterpolation(), DEFAULT_DATA),
+        ],
+    ).run_test_cases()
+
+    default_data_with_cache = Data(
+        {
+            "store": create_cache_store(
+                zarr.storage.LocalStore("datasets/ds_2d_left_agrid.zarr"),
+                2 * ONE_GB,
+            ),
+            "consolidated": False,
+        },
+        n_particles=N_PARTICLES,
+        chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
+    )
+    Workspace(
+        folder=OUTPUT_FOLDER / "compare-zarr-cache",
+        test_cases=[
+            (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
+            (profile_execution_time, SingleInterpolation(), default_data_with_cache),
         ],
     ).run_test_cases()
