@@ -2,9 +2,7 @@ datasets
 __marimo__
 *.svg
 .mypy_cache
-*.prof
 **.pyc
 __pycache__
-*.bin
 *.html
 output

@@ -19,7 +19,7 @@ In our simulations, we would like to run with hundreds of thousands of particles
 - Some assumptions can be made about particle positions. For example, between timesteps a particle occupies the same or a neighbouring grid cell. This assumption allows for grid searching performance improvements, and potentially a lot of cache hits if the flow data of a previous timestep is already loaded into memory.
 - This computation is parallelisable on a particle level (assuming no particle-particle interation), however is not parallelisable in time. The location of the particle, and the field locations it samples, is directly dependent on the previous computations.
 
-All of this to illusrtate that the data access patterns within Lagrangian oceanography is fundamentally different to that of Eulerian oceanography, and different to a lot of the image-data processing techniques that are explored in the Xarray and Pangeo communities.
+All of this to illustrate that the data access patterns within Lagrangian oceanography is fundamentally different to that of Eulerian oceanography, and different to a lot of the image-data processing techniques that are explored in the Xarray and Pangeo communities.
 
 By exploring the performance of Xarray when it comes to the interpolation of point-cloud data within data-cubes, we can hopefully measure how feasible it is to use Xarray in it's current state for integration in Lagrangian simulation frameworks. In the case of poor perforamnce, this profiling will hopefully show (a) what changes can be made to Xarray to enable this usecase, or (b) how Xarray users interested in this use case can use Xarray's current abstractions to achieve acceptable performance for this problem.
 
@@ -46,6 +46,10 @@ Results can be visualized using a flamegraph.
 - Memray
   - Run `memray flamegraph <file_name>` to convert memray output to a HTML representation
   - Run `python -m http.server 3000` to start an http server to view the file
+
+### Profiling analysis
+
+See [`ANALYSIS.md`](./ANALYSIS.md).
 
 ### Brainstorming
 
