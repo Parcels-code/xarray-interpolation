@@ -3,6 +3,7 @@ import xarray as xr
 
 from pathlib import Path
 
+import dask  # noqa: F401
 import zarr
 from zarr.abc.store import Store
 from contextlib import contextmanager
@@ -18,6 +19,8 @@ from typing import Callable
 import time
 import json
 from dataclasses import dataclass
+
+# dask.config.set(scheduler="single-threaded")
 
 # full dataset size is ~24Gb. To simulate particles occupying in-memory chunks (an assumption that will hold for Parcels), we set the coverage proportion to be aligned with our machine RAM
 # i.e., if our usable memory is 2Gb, coverage proportion should be less than 2/24 = 0.083
