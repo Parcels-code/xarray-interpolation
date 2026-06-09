@@ -62,6 +62,9 @@ with Dask scales linearly (alluding to no caching of values or computation graph
 comparing (4) and (5) shows that the experimental Zarr CacheStore has no performance improvement.
 
 All of this indicates that the major slowdown is Dask itself - which is also evident when opening the profile outputs in `snakeviz`.
+Looking at Viztracer output, it's clear that a lot of time is spent waiting for the thread lock (since we're working with a
+Dask threadpool executor). Switching to a single threaded executor via the config actually makes our code in (3), (4), (5) run _faster_
+bringing the execution time for (3) a bit below that of (2).
 
 # Appendix A: Full profiling results from cases
 
