@@ -18,6 +18,7 @@ from typing import Callable
 
 import time
 import json
+from viztracer import VizTracer
 from dataclasses import dataclass
 
 # dask.config.set(scheduler="single-threaded")
@@ -234,6 +235,18 @@ def profile_memory(folder: Path, data: Data, task: Task) -> Path:
     with data.setup() as (ds, positions):
         with memray.Tracker(report):
             task.run(ds, positions)
+    return report
+
+
+def run_viztracer(folder: Path, data: Data, task: Task) -> Path:
+    assert folder.is_dir()
+    assert folder.exists()
+    report = folder / f"viztracer_{task.name}_{get_current_time()}.json"
+
+    with data.setup() as (ds, positions):
+        with open(report, "w") as f:
+            with VizTracer(output_file=f):
+                task.run(ds, positions)
     return report
 
 

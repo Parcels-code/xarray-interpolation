@@ -16,6 +16,7 @@ graphviz = "*"
 snakeviz = ">=2.2.2,<3"
 memray = ">=1.19.3,<2"
 mypy = "*"
+viztracer = ">=1.1.1,<2"
 
 [tasks]
 typecheck = { cmd = "mypy" }
