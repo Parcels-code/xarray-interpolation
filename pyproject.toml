@@ -11,5 +11,6 @@ module = [
   "dask.*",
   "zarr.*",
   "graphviz",
+  "viztracer",
 ]
 ignore_missing_imports = true
