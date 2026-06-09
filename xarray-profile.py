@@ -8,6 +8,7 @@ from zarr.abc.store import Store
 from contextlib import contextmanager
 import math
 import cProfile
+import zarr.storage
 import memray
 from abc import ABC, abstractmethod
 from typing import Any
@@ -16,7 +17,6 @@ from typing import Callable
 
 import time
 import json
-import zarr.storage
 from dataclasses import dataclass
 
 # full dataset size is ~24Gb. To simulate particles occupying in-memory chunks (an assumption that will hold for Parcels), we set the coverage proportion to be aligned with our machine RAM
@@ -187,6 +187,14 @@ class SingleInterpolation(Task):
         ds.isel(positions).compute()
 
 
+class LoadThenSingleInterpolation(Task):
+    name = "load-then-single-interpolation"
+
+    def run(self, ds: xr.Dataset, positions: xr.Dataset):
+        ds = ds.load()
+        ds.isel(positions)
+
+
 class TripleInterpolation(Task):
     name = "triple-interpolation"
 
@@ -295,13 +303,37 @@ if __name__ == "__main__":
         return ds.load()
 
     Workspace(
-        folder=OUTPUT_FOLDER / "compare-load-vs-dask",
+        folder=OUTPUT_FOLDER / "compare-for-xarray-folks",
         test_cases=[
-            (profile_execution_time, SingleInterpolation(), DEFAULT_DATA_SMALL),
+            # 1 - interp on already loaded data. Only profile interp
             (
                 profile_execution_time,
                 SingleInterpolation(),
                 DEFAULT_DATA_SMALL.then(postprocess_ds=load_dataset),
+            ),
+            # 2 - interp on already loaded data. Profile load and interp
+            (profile_execution_time, LoadThenSingleInterpolation(), DEFAULT_DATA_SMALL),
+            # 3 - interp using dask (i.e., no pre-fetching)
+            (profile_execution_time, SingleInterpolation(), DEFAULT_DATA_SMALL),
+            # 4 - triple interp using dask (i.e., no pre-fetching)
+            (profile_execution_time, TripleInterpolation(), DEFAULT_DATA_SMALL),
+            # 5 - triple interp using dask with LRU cache Zarr Store
+            (
+                profile_execution_time,
+                TripleInterpolation(),
+                Data(
+                    {
+                        "store": create_cache_store(
+                            zarr.storage.LocalStore(
+                                "datasets/ds_2d_left_agrid_small.zarr"
+                            ),
+                            2 * ONE_GB,
+                        ),
+                        "consolidated": False,
+                    },
+                    n_particles=N_PARTICLES,
+                    chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
+                ),
             ),
         ],
     ).run_test_cases()

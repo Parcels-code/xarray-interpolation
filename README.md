@@ -47,6 +47,10 @@ Results can be visualized using a flamegraph.
   - Run `memray flamegraph <file_name>` to convert memray output to a HTML representation
   - Run `python -m http.server 3000` to start an http server to view the file
 
+### Profiling analysis
+
+See [`ANALYSIS.md`](./ANALYSIS.md).
+
 ### Brainstorming
 
 - Could we use a [CacheStore from Zarr](https://zarr.readthedocs.io/en/stable/api/zarr/experimental/#zarr.experimental.cache_store.CacheStore) to load and cache repeatedly used chunks?

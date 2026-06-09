@@ -1,0 +1,34 @@
+{
+  "test_cases": [
+    {
+      "data": "Data(open_zarr_kwargs={'store': 'datasets/ds_2d_left_agrid_small.zarr', 'consolidated': False}, n_particles=100000, chunk_coverage=0.03, postprocess_ds=<function load_dataset at 0x13f000d50>)",
+      "task": "single-interpolation",
+      "profiler": "profile_execution_time()",
+      "profile_path": "case1.prof"
+    },
+    {
+      "data": "Data(open_zarr_kwargs={'store': 'datasets/ds_2d_left_agrid_small.zarr', 'consolidated': False}, n_particles=100000, chunk_coverage=0.03, postprocess_ds=None)",
+      "task": "load-then-single-interpolation",
+      "profiler": "profile_execution_time()",
+      "profile_path": "case2.prof"
+    },
+    {
+      "data": "Data(open_zarr_kwargs={'store': 'datasets/ds_2d_left_agrid_small.zarr', 'consolidated': False}, n_particles=100000, chunk_coverage=0.03, postprocess_ds=None)",
+      "task": "single-interpolation",
+      "profiler": "profile_execution_time()",
+      "profile_path": "case3.prof"
+    },
+    {
+      "data": "Data(open_zarr_kwargs={'store': 'datasets/ds_2d_left_agrid_small.zarr', 'consolidated': False}, n_particles=100000, chunk_coverage=0.03, postprocess_ds=None)",
+      "task": "triple-interpolation",
+      "profiler": "profile_execution_time()",
+      "profile_path": "case4.prof"
+    },
+    {
+      "data": "Data(open_zarr_kwargs={'store': CacheStore(store=LocalStore('file://datasets/ds_2d_left_agrid_small.zarr'), cache_store=MemoryStore('memory://5351835584'), max_age_seconds=infinity, max_size=2097152, current_size=1456223, cached_keys=1), 'consolidated': False}, n_particles=100000, chunk_coverage=0.03, postprocess_ds=None)",
+      "task": "triple-interpolation",
+      "profiler": "profile_execution_time()",
+      "profile_path": "case5.prof"
+    }
+  ]
+}
