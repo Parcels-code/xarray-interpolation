@@ -84,6 +84,7 @@ class Data:
         open_zarr_kwargs: dict[str, Any],
         n_particles: int,
         chunk_coverage: float,
+        use_zarr_array: bool = False,
     ):  # % of chunks that are covered
         assert "store" in open_zarr_kwargs
         assert isinstance(open_zarr_kwargs["store"], (str, Path, Store))
@@ -93,6 +94,7 @@ class Data:
         self.chunk_coverage = chunk_coverage
         self.postprocess_ds: Callable[[xr.Dataset], xr.Dataset] | None = None
         self._within_ctx: Any = None
+        self.use_zarr_array = use_zarr_array
 
     def __copy__(self):
         ret = type(self)(
@@ -121,6 +123,11 @@ class Data:
             return ds.pipe(self.postprocess_ds)
         return ds
 
+    def get_zarr_array(self):
+        _z_store = zarr.open(self.open_zarr_kwargs["store"], mode="r")
+        assert isinstance(_z_store, zarr.Group)
+        return _z_store["V_A_grid"]
+
     def get_particle_positions(self):
         ds = self.ds
         chunks_coverage = self.chunk_coverage
@@ -136,27 +143,31 @@ class Data:
 
         chunks_covered = int(chunks_coverage * total_chunks)
 
-        positions = wrap_in_da(
-            floor_it_all(
-                get_barycentric_coordinates(
-                    self.n_particles,
-                    ds,
-                    chunks_covered,
-                    chunk_size_per_dim,
-                    chunks_per_dim_count,
-                )
+        positions = floor_it_all(
+            get_barycentric_coordinates(
+                self.n_particles,
+                ds,
+                chunks_covered,
+                chunk_size_per_dim,
+                chunks_per_dim_count,
             )
         )
-        return positions
+        return [v for _, v in positions.items()]
 
     @contextmanager
     def setup(self):
         self.ds = self.get_ds()
+        self.zarr_arr = self.get_zarr_array()
         self.positions = self.get_particle_positions()
-
         with self._within_ctx:
-            yield self.ds, self.positions
+            if self.use_zarr_array:
+                yield self.zarr_arr, self.positions
+            else:
+                yield np.array(self.zarr_arr), self.positions
+
+
         self.ds = None
+        self.zarr_arr = None
         self.positions = None
 
     def __repr__(self):
@@ -165,7 +176,8 @@ class Data:
             f"n_particles={self.n_particles}, "
             f"chunk_coverage={self.chunk_coverage}, "
             f"postprocess_ds={self.postprocess_ds}, "
-            f"within_ctx={self._within_ctx})"
+            f"within_ctx={self._within_ctx}, "
+            f"use_zarr_array={self.use_zarr_array})"
         )
 
 
@@ -186,31 +198,31 @@ class Task(ABC):
     name: str
 
     @abstractmethod
-    def run(self, ds: xr.Dataset, positions: xr.Dataset): ...
+    def run(self, arr, positions): ...
 
 
 class SingleInterpolation(Task):
     name = "single-interpolation"
 
-    def run(self, ds: xr.Dataset, positions: xr.Dataset):
-        ds.isel(positions).compute()
+    def run(self, arr, positions):
+        arr[*positions]
 
 
 class LoadThenSingleInterpolation(Task):
     name = "load-then-single-interpolation"
 
-    def run(self, ds: xr.Dataset, positions: xr.Dataset):
-        ds = ds.load()
-        ds.isel(positions)
+    def run(self, arr, positions):
+        arr = np.array(arr)
+        arr[*positions]
 
 
 class TripleInterpolation(Task):
     name = "triple-interpolation"
 
-    def run(self, ds: xr.Dataset, positions: xr.Dataset):
-        ds.isel(positions).compute()
-        ds.isel(positions).compute()
-        ds.isel(positions).compute()
+    def run(self, arr, positions):
+        arr[*positions]
+        arr[*positions]
+        arr[*positions]
 
 
 Profiler = Callable[
@@ -330,94 +342,72 @@ class Workspace:
 
 if __name__ == "__main__":
     OUTPUT_FOLDER.mkdir(exist_ok=True)
-
-    # Workspace(
-    #     folder=OUTPUT_FOLDER / "single-interpolation",
-    #     test_cases=[
-    #         (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
-    #         (profile_memory, SingleInterpolation(), DEFAULT_DATA),
-    #     ],
-    # ).run_test_cases()
-
-    # default_data_with_cache = Data(
-    #     {
-    #         "store": create_cache_store(
-    #             zarr.storage.LocalStore("datasets/ds_2d_left_agrid.zarr"),
-    #             2 * ONE_GB,
-    #         ),
-    #         "consolidated": False,
-    #     },
-    #     n_particles=N_PARTICLES,
-    #     chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
-    # )
-    # Workspace(
-    #     folder=OUTPUT_FOLDER / "compare-zarr-cache-single-call",
-    #     test_cases=[
-    #         (profile_execution_time, SingleInterpolation(), DEFAULT_DATA),
-    #         (profile_execution_time, SingleInterpolation(), default_data_with_cache),
-    #     ],
-    # ).run_test_cases()
-
-    # Workspace(
-    #     folder=OUTPUT_FOLDER / "compare-zarr-cache-triple-call",
-    #     test_cases=[
-    #         (profile_execution_time, TripleInterpolation(), DEFAULT_DATA),
-    #         (profile_execution_time, TripleInterpolation(), default_data_with_cache),
-    #     ],
-    # ).run_test_cases()
-
-    def load_dataset(ds: xr.Dataset) -> xr.Dataset:
-        return ds.load()
+    numpy_data, zarr_data = [
+        Data(  # ~1Gb uncompressed
+            {"store": "datasets/ds_2d_left_agrid_small.zarr", "consolidated": False},
+            n_particles=N_PARTICLES,
+            chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
+            use_zarr_array=use_zarr_array,
+        )
+        for use_zarr_array in [False, True]
+    ]
+    zarr_data_with_cache = Data(  # ~1Gb uncompressed
+        {
+            "store": create_cache_store(
+                zarr.storage.LocalStore("datasets/ds_2d_left_agrid_small.zarr"),
+                2 * ONE_GB,
+            ),
+            "consolidated": False,
+        },
+        n_particles=N_PARTICLES,
+        chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
+        use_zarr_array=True,
+    )
 
     Workspace(
-        folder=OUTPUT_FOLDER / "compare-for-xarray-folks",
+        folder=OUTPUT_FOLDER / "compare-from-raw-zarr",
         test_cases=[
-            # 1 - interp on already loaded data. Only profile interp
+            # 1 - Interpolation on already loaded numpy data
             TestCase(
                 profile_execution_time,
                 SingleInterpolation(),
-                DEFAULT_DATA_SMALL.then(postprocess_ds=load_dataset),
+                numpy_data,
                 file_stem="case1",
             ),
-            # 2 - interp on already loaded data. Profile load and interp
+            # 2 - Interpolation on zarr data using zarr array
+            TestCase(
+                profile_execution_time,
+                SingleInterpolation(),
+                zarr_data,
+                file_stem="case2",
+            ),
+            # 3 - Load from zarr array then interpolate
             TestCase(
                 profile_execution_time,
                 LoadThenSingleInterpolation(),
-                DEFAULT_DATA_SMALL,
-                file_stem="case2",
-            ),
-            # 3 - interp using dask (i.e., no pre-fetching)
-            TestCase(
-                profile_execution_time,
-                SingleInterpolation(),
-                DEFAULT_DATA_SMALL,
+                zarr_data,
                 file_stem="case3",
             ),
-            # 4 - triple interp using dask (i.e., no pre-fetching)
+            # 4 - triple interpolation on already loaded numpy data
             TestCase(
                 profile_execution_time,
                 TripleInterpolation(),
-                DEFAULT_DATA_SMALL,
+                numpy_data,
                 file_stem="case4",
             ),
-            # 5 - triple interp using dask with LRU cache Zarr Store
+            # 5 - triple interpolation on zarr data
             TestCase(
                 profile_execution_time,
                 TripleInterpolation(),
-                Data(
-                    {
-                        "store": create_cache_store(
-                            zarr.storage.LocalStore(
-                                "datasets/ds_2d_left_agrid_small.zarr"
-                            ),
-                            2 * ONE_GB,
-                        ),
-                        "consolidated": False,
-                    },
-                    n_particles=N_PARTICLES,
-                    chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
-                ),
+                zarr_data,
                 file_stem="case5",
+            ),
+            # 6 - triple interpolation on zarr data with 2 Gb cache
+            TestCase(
+                profile_execution_time,
+                TripleInterpolation(),
+                zarr_data_with_cache,
+                file_stem="case6",
             ),
         ],
     ).run_test_cases()
