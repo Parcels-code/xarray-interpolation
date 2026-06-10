@@ -29,7 +29,7 @@ from dataclasses import dataclass
 DEFAULT_CHUNK_COVERAGE_PROP = 0.03  # 3% coverage
 
 N_PARTICLES = 10**5
-ONE_GB = 1024 * 1024
+ONE_GB = 1024 * 1024 * 1024
 
 OUTPUT_FOLDER = Path("output")
 
