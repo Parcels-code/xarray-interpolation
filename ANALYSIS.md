@@ -86,7 +86,7 @@ for i in [1,2,3,4,5]:
 ```
 
 ## Output
-
+```
 Summary for saved_outputs/compare-for-xarray-folks/case1.prof
 ===================
 Wed Jun 10 12:09:38 2026    saved_outputs/compare-for-xarray-folks/case1.prof
@@ -196,5 +196,5 @@ Wed Jun 10 12:09:57 2026    saved_outputs/compare-for-xarray-folks/case5.prof
 58048/58047    0.079    0.000    3.158    0.000 /Users/Hodgs004/coding/repos/xarray-interpolation/.pixi/envs/default/lib/python3.14/queue.py:177(get)
       195    0.000    0.000    2.427    0.012 /Users/Hodgs004/coding/repos/xarray-interpolation/.pixi/envs/default/lib/python3.14/site-packages/xarray/core/indexing.py:1179(apply_indexer)
 
-
+```
 
