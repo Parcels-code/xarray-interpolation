@@ -49,7 +49,7 @@ Results can be visualized using a flamegraph.
 
 ### Profiling analysis
 
-See [`ANALYSIS.md`](./ANALYSIS.md).
+We run various profiling results. See `saved_outputs` and the README's within.
 
 ### Brainstorming
 

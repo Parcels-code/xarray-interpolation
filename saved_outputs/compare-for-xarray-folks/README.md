@@ -1,5 +1,7 @@
 # Profiling analysis
 
+## Problem overview
+
 We roughly want to have the following:
 
 - loop start:
@@ -10,11 +12,13 @@ We roughly want to have the following:
   - isel results are combined to perform the interpolation
   - particle positions are updated
 
+## Case overview
+
 Here we construct 4 test cases to explore how isel behaviour works in Xarray with point cloud data where particles are seeding sparsely (i.e., not full coverage of the Zarr dataset). I think there is a lot more to explore here - this is just a starting point.
 
 Here we only measure execution time using CProfile. We haven't run memory profiles yet, though that can be easily done. Also note that CProfile (N.B. as far as I know) isn't able to fully introspect Dask workings, so the resulting profile is somewhat limited.
 
-See [`xarray-profile.py`](./xarray-profile.py) for the exact code to reproduce these results.
+See [`xarray-profile.py`](./xarray-profile.py) (specifically at commit b8b43d7c9d4b5a4a9cb9feaf57d43d09e9e85ff3 ) for the exact code to reproduce these results.
 
 ## Data and parameters
 
@@ -68,9 +72,7 @@ bringing the execution time for (3) a bit below that of (2).
 
 # Appendix A: Full profiling results from cases
 
-The full results are saved in [./saved_outputs](./saved_outputs) (note that the file names have been changed to match the cases above).
-
-You can use `viztracer saved_outputs` to explore the outputs, or use the following script to print output which are pasted below:
+You can use `snakeviz saved_outputs` to explore the outputs, or use the following script to print output which are pasted below:
 
 ```python
 import pstats
