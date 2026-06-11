@@ -13,7 +13,7 @@ import memray
 from abc import ABC, abstractmethod
 from typing import Any
 import copy
-from typing import Callable, Any#noqa: F811
+from typing import Callable, Any  # noqa: F811
 
 import time
 import json
@@ -111,7 +111,7 @@ class Data:
         ret = copy.copy(self)
         ret.postprocess_ds = postprocess_ds
         return ret
-    
+
     def within_ctx(self, ctx):
         self._within_ctx = ctx
 
@@ -238,17 +238,21 @@ def profile_execution_time(
         prof.dump_stats(report)
     return report
 
+
 @contextmanager
 def use_zarrs_backend():
     # uses the context manager provided by the Zarr-rs python package (Rust based)
     with zarr.config.set({"codec_pipeline.path": "zarrs.ZarrsCodecPipeline"}):
         yield
 
+
 @contextmanager
 def use_single_threaded_dask():
     import dask
+
     with dask.config.set(scheduler="single-threaded"):
         yield
+
 
 def profile_memory(
     folder: Path, data: Data, task: Task, file_stem: str | None = None
