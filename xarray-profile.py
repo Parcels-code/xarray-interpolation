@@ -15,7 +15,7 @@ from typing import Any
 import copy
 from typing import Callable, Any  # noqa: F811
 
-import time
+from datetime import datetime
 import json
 from viztracer import VizTracer
 from dataclasses import dataclass
@@ -33,8 +33,7 @@ OUTPUT_FOLDER = Path("output")
 
 
 def get_current_time() -> str:
-    t = time.localtime()
-    return time.strftime("%Y%m%d-%H%M-%S", t)
+    return datetime.now().strftime("%Y%m%d-%H%M-%S-%f")[:-3]
 
 
 def get_barycentric_coordinates(n, ds, n_active_chunks, chunk_sizes, chunk_counts):
