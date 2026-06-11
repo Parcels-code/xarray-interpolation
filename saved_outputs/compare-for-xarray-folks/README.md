@@ -1,5 +1,7 @@
 # Profiling analysis
-## Overview
+
+## Problem overview
+
 We roughly want to have the following:
 
 - loop start:
@@ -9,6 +11,8 @@ We roughly want to have the following:
     - These chunks which were retrieved from are stored in memory using an LRU cache, skipping potentially expensive trips to disk in future
   - isel results are combined to perform the interpolation
   - particle positions are updated
+
+## Case overview
 
 Here we construct 4 test cases to explore how isel behaviour works in Xarray with point cloud data where particles are seeding sparsely (i.e., not full coverage of the Zarr dataset). I think there is a lot more to explore here - this is just a starting point.
 
