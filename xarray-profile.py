@@ -209,14 +209,21 @@ class TripleInterpolation(Task):
 
 
 Profiler = Callable[
-    [Path, Data, Task], Path
+    [Path, Data, Task, str | None], Path
 ]  # Functions that take a folder and save a profiling report
 
 
-def profile_execution_time(folder: Path, data: Data, task: Task) -> Path:
+def profile_execution_time(
+    folder: Path, data: Data, task: Task, file_stem: str | None = None
+) -> Path:
     assert folder.is_dir()
     assert folder.exists()
-    report = folder / f"cprofile_{task.name}_{get_current_time()}.prof"
+    stem = (
+        file_stem
+        if file_stem is not None
+        else f"cprofile_{task.name}_{get_current_time()}"
+    )
+    report = folder / f"{stem}.prof"
 
     with data.setup() as (ds, positions):
         prof = cProfile.Profile()
@@ -227,10 +234,17 @@ def profile_execution_time(folder: Path, data: Data, task: Task) -> Path:
     return report
 
 
-def profile_memory(folder: Path, data: Data, task: Task) -> Path:
+def profile_memory(
+    folder: Path, data: Data, task: Task, file_stem: str | None = None
+) -> Path:
     assert folder.is_dir()
     assert folder.exists()
-    report = folder / f"memray_{task.name}_{get_current_time()}.bin"
+    stem = (
+        file_stem
+        if file_stem is not None
+        else f"memray_{task.name}_{get_current_time()}"
+    )
+    report = folder / f"{stem}.bin"
 
     with data.setup() as (ds, positions):
         with memray.Tracker(report):
@@ -238,10 +252,17 @@ def profile_memory(folder: Path, data: Data, task: Task) -> Path:
     return report
 
 
-def run_viztracer(folder: Path, data: Data, task: Task) -> Path:
+def run_viztracer(
+    folder: Path, data: Data, task: Task, file_stem: str | None = None
+) -> Path:
     assert folder.is_dir()
     assert folder.exists()
-    report = folder / f"viztracer_{task.name}_{get_current_time()}.json"
+    stem = (
+        file_stem
+        if file_stem is not None
+        else f"viztracer_{task.name}_{get_current_time()}"
+    )
+    report = folder / f"{stem}.json"
 
     with data.setup() as (ds, positions):
         with open(report, "w") as f:
@@ -251,9 +272,17 @@ def run_viztracer(folder: Path, data: Data, task: Task) -> Path:
 
 
 @dataclass
+class TestCase:
+    profiler: Profiler
+    task: Task
+    data: Data
+    file_stem: str | None = None
+
+
+@dataclass
 class Workspace:
     folder: Path
-    test_cases: list[tuple[Profiler, Task, Data]]
+    test_cases: list[TestCase]
 
     def run_test_cases(self):
         if self.folder.exists():
@@ -263,13 +292,15 @@ class Workspace:
             raise RuntimeError(msg)
         self.folder.mkdir()
         summary = {"test_cases": []}  # type: ignore[var-annotated]
-        for profiler, task, data in self.test_cases:
-            report = profiler(self.folder, data, task)
+        for test_case in self.test_cases:
+            report = test_case.profiler(
+                self.folder, test_case.data, test_case.task, test_case.file_stem
+            )
             summary["test_cases"].append(
                 {
-                    "data": repr(data),
-                    "task": task.name,
-                    "profiler": profiler.__name__ + "()",
+                    "data": repr(test_case.data),
+                    "task": test_case.task.name,
+                    "profiler": test_case.profiler.__name__ + "()",
                     "profile_path": str(report.relative_to(self.folder)),
                 }
             )
@@ -322,19 +353,23 @@ if __name__ == "__main__":
         folder=OUTPUT_FOLDER / "compare-for-xarray-folks",
         test_cases=[
             # 1 - interp on already loaded data. Only profile interp
-            (
+            TestCase(
                 profile_execution_time,
                 SingleInterpolation(),
                 DEFAULT_DATA_SMALL.then(postprocess_ds=load_dataset),
             ),
             # 2 - interp on already loaded data. Profile load and interp
-            (profile_execution_time, LoadThenSingleInterpolation(), DEFAULT_DATA_SMALL),
+            TestCase(
+                profile_execution_time,
+                LoadThenSingleInterpolation(),
+                DEFAULT_DATA_SMALL,
+            ),
             # 3 - interp using dask (i.e., no pre-fetching)
-            (profile_execution_time, SingleInterpolation(), DEFAULT_DATA_SMALL),
+            TestCase(profile_execution_time, SingleInterpolation(), DEFAULT_DATA_SMALL),
             # 4 - triple interp using dask (i.e., no pre-fetching)
-            (profile_execution_time, TripleInterpolation(), DEFAULT_DATA_SMALL),
+            TestCase(profile_execution_time, TripleInterpolation(), DEFAULT_DATA_SMALL),
             # 5 - triple interp using dask with LRU cache Zarr Store
-            (
+            TestCase(
                 profile_execution_time,
                 TripleInterpolation(),
                 Data(
