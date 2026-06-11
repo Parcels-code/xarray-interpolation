@@ -3,7 +3,6 @@ import xarray as xr
 
 from pathlib import Path
 
-import dask  # noqa: F401
 import zarr
 from zarr.abc.store import Store
 from contextlib import contextmanager
@@ -14,14 +13,13 @@ import memray
 from abc import ABC, abstractmethod
 from typing import Any
 import copy
-from typing import Callable
+from typing import Callable, Any#noqa: F811
 
 import time
 import json
 from viztracer import VizTracer
 from dataclasses import dataclass
 
-# dask.config.set(scheduler="single-threaded")
 
 # full dataset size is ~24Gb. To simulate particles occupying in-memory chunks (an assumption that will hold for Parcels), we set the coverage proportion to be aligned with our machine RAM
 # i.e., if our usable memory is 2Gb, coverage proportion should be less than 2/24 = 0.083
@@ -94,6 +92,7 @@ class Data:
         assert 0 < chunk_coverage <= 1.0
         self.chunk_coverage = chunk_coverage
         self.postprocess_ds: Callable[[xr.Dataset], xr.Dataset] | None = None
+        self._within_ctx: Any = None
 
     def __copy__(self):
         ret = type(self)(
@@ -112,6 +111,9 @@ class Data:
         ret = copy.copy(self)
         ret.postprocess_ds = postprocess_ds
         return ret
+    
+    def within_ctx(self, ctx):
+        self._within_ctx = ctx
 
     def get_ds(self):
         ds = xr.open_zarr(**self.open_zarr_kwargs)
@@ -151,7 +153,9 @@ class Data:
     def setup(self):
         self.ds = self.get_ds()
         self.positions = self.get_particle_positions()
-        yield self.ds, self.positions
+
+        with self._within_ctx:
+            yield self.ds, self.positions
         self.ds = None
         self.positions = None
 
@@ -160,7 +164,8 @@ class Data:
             f"Data(open_zarr_kwargs={repr(self.open_zarr_kwargs)}, "
             f"n_particles={self.n_particles}, "
             f"chunk_coverage={self.chunk_coverage}, "
-            f"postprocess_ds={self.postprocess_ds})"
+            f"postprocess_ds={self.postprocess_ds}, "
+            f"within_ctx={self._within_ctx})"
         )
 
 
@@ -233,6 +238,17 @@ def profile_execution_time(
         prof.dump_stats(report)
     return report
 
+@contextmanager
+def use_zarrs_backend():
+    # uses the context manager provided by the Zarr-rs python package (Rust based)
+    with zarr.config.set({"codec_pipeline.path": "zarrs.ZarrsCodecPipeline"}):
+        yield
+
+@contextmanager
+def use_single_threaded_dask():
+    import dask
+    with dask.config.set(scheduler="single-threaded"):
+        yield
 
 def profile_memory(
     folder: Path, data: Data, task: Task, file_stem: str | None = None
