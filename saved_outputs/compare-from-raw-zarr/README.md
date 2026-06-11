@@ -9,7 +9,7 @@ Here we construct 6 test cases to explore what happens if we completely bypass X
 
 Here we only measure execution time using CProfile. We haven't run memory profiles yet, though that can be easily done.
 
-See [`xarray-profile.py`](./xarray-profile.py) for the exact code to reproduce these results.
+See [`xarray-profile.py`](./xarray-profile.py) (specifically at commit 451dc96e39387a3917cc7ee9864b04484016367f) for the exact code to reproduce these results.
 
 ## Data and parameters
 
