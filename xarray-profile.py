@@ -357,17 +357,29 @@ if __name__ == "__main__":
                 profile_execution_time,
                 SingleInterpolation(),
                 DEFAULT_DATA_SMALL.then(postprocess_ds=load_dataset),
+                file_stem="case1",
             ),
             # 2 - interp on already loaded data. Profile load and interp
             TestCase(
                 profile_execution_time,
                 LoadThenSingleInterpolation(),
                 DEFAULT_DATA_SMALL,
+                file_stem="case2",
             ),
             # 3 - interp using dask (i.e., no pre-fetching)
-            TestCase(profile_execution_time, SingleInterpolation(), DEFAULT_DATA_SMALL),
+            TestCase(
+                profile_execution_time,
+                SingleInterpolation(),
+                DEFAULT_DATA_SMALL,
+                file_stem="case3",
+            ),
             # 4 - triple interp using dask (i.e., no pre-fetching)
-            TestCase(profile_execution_time, TripleInterpolation(), DEFAULT_DATA_SMALL),
+            TestCase(
+                profile_execution_time,
+                TripleInterpolation(),
+                DEFAULT_DATA_SMALL,
+                file_stem="case4",
+            ),
             # 5 - triple interp using dask with LRU cache Zarr Store
             TestCase(
                 profile_execution_time,
@@ -385,6 +397,7 @@ if __name__ == "__main__":
                     n_particles=N_PARTICLES,
                     chunk_coverage=DEFAULT_CHUNK_COVERAGE_PROP,
                 ),
+                file_stem="case5",
             ),
         ],
     ).run_test_cases()
