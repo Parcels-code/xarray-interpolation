@@ -5,7 +5,7 @@ from pathlib import Path
 
 import zarr
 from zarr.abc.store import Store
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import math
 import cProfile
 import zarr.storage
@@ -158,7 +158,8 @@ class Data:
         self.ds = self.get_ds()
         self.zarr_arr = self.get_zarr_array()
         self.positions = self.get_particle_positions()
-        with self._within_ctx:
+        ctx = self._within_ctx if self._within_ctx is not None else nullcontext()
+        with ctx:
             if self.use_zarr_array:
                 yield self.zarr_arr, self.positions
             else:
