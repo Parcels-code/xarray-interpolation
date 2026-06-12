@@ -17,6 +17,9 @@ snakeviz = ">=2.2.2,<3"
 memray = ">=1.19.3,<2"
 mypy = "*"
 viztracer = ">=1.1.1,<2"
+jupyter = ">=1.1.1,<2"
+tqdm = ">=4.68.2,<5"
+matplotlib = ">=3.10.9,<4"
 
 [tasks]
 typecheck = { cmd = "mypy" }
